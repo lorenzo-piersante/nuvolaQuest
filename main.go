@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"nuvolaQuest/auth"
 	"nuvolaQuest/health"
 
 	"github.com/gin-gonic/gin"
@@ -11,6 +12,7 @@ func SetupRouter() *gin.Engine {
 	r := gin.Default()
 
 	health.RegisterRoutes(r)
+	auth.RegisterRoutes(r)
 
 	return r
 }
