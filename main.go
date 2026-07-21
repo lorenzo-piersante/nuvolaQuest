@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"nuvolaQuest/auth"
 	"nuvolaQuest/health"
+	"nuvolaQuest/user"
 
 	"github.com/gin-gonic/gin"
 )
@@ -13,6 +14,7 @@ func SetupRouter() *gin.Engine {
 
 	health.RegisterRoutes(r)
 	auth.RegisterRoutes(r)
+	user.RegisterRoutes(r)
 
 	return r
 }

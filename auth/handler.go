@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -62,8 +64,11 @@ func RegisterHandler(c *gin.Context) {
 	}
 	defer client.Disconnect(ctx)
 
+	userID := uuid.New().String()
+
 	coll := usersCollection(client)
 	doc := bson.M{
+		"_id":        userID,
 		"username":   req.Username,
 		"password":   req.Password, // intentionally plain for mock
 		"created_at": time.Now(),
@@ -73,7 +78,10 @@ func RegisterHandler(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"status": "ok"})
+	c.JSON(http.StatusCreated, gin.H{
+		"status":  "ok",
+		"user_id": userID,
+	})
 }
 
 // LoginRequest is the expected payload for user login
@@ -113,5 +121,31 @@ func LoginHandler(c *gin.Context) {
 	}
 
 	// success
-	c.JSON(http.StatusOK, gin.H{"status": "ok"})
+	var userIDStr string
+	if idStr, ok := result["_id"].(string); ok {
+		userIDStr = idStr
+	}
+
+	secret := os.Getenv("JWT_SECRET")
+	if secret == "" {
+		secret = "default-secret-key"
+	}
+
+	claims := jwt.MapClaims{
+		"user_id": userIDStr,
+		"exp":     time.Now().Add(24 * time.Hour).Unix(),
+		"iat":     time.Now().Unix(),
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	tokenString, err := token.SignedString([]byte(secret))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate token"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"status": "ok",
+		"token": tokenString,
+	})
 }
